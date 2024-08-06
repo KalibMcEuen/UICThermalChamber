@@ -7,7 +7,7 @@
 
 // Definitions and variable assignments
 #define pinData SDA
-#define SD_CS_PIN 4
+#define SD_CS_PIN 4 //depends on your model
 
 DHT22 dht22(pinData);
 
