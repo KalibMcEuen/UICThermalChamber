@@ -7,7 +7,7 @@
 
 // Definitions and variable assignments
 #define pinData SDA
-#define SD_CS_PIN 4 //depends on your model
+#define SD_CS_PIN 4
 
 DHT22 dht22(pinData);
 
@@ -19,10 +19,10 @@ EthernetClient ethClient;
 ModbusTCPClient modbusClient(ethClient);
 
 // Ethernet shield MAC address
-byte mac[] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0xA7, 0xF8 };
 
 // Thermal Chamber IP
-IPAddress chamberIP(255, 255, 255, 255);
+IPAddress chamberIP(10, 19, 190, 88);
 
 // Port number for Modbus communication (502 is standard)
 const int chamberPort = 502;
@@ -49,6 +49,7 @@ void setup() {
   if (modbusClient.begin(chamberIP, chamberPort)) {
     Serial.println("Connected");
   }
+  
   else {
     Serial.println("Failed to connect");
   }
@@ -56,7 +57,6 @@ void setup() {
 }
 
 void loop() {
-  
   // If disconnected from chamber, try reconnecting every 5 seconds
   if (!modbusClient.connected()) {
     if (!modbusClient.begin(chamberIP, chamberPort)) {
@@ -65,6 +65,10 @@ void loop() {
     }
   }
 
+  // Set variables for entering safety protocol
+  static bool SafetyProtocolEnabled = false;
+  static bool DangerZone = false;
+
   // Open or create file for writing
   file = SD.open("errorlog.txt", FILE_WRITE);
 
@@ -72,9 +76,15 @@ void loop() {
   float t = dht22.getTemperature();
   float h = dht22.getHumidity();
 
-  // If temperature OR humidity unacceptable, enact safety protocol
-  if (t < 17.5 | t > 23.5 | h > 50.0) {
-    
+  // If temperature OR humidity unacceptable, we are in danger
+  if (t < 17.5 || t > 23.5 || h > 50.0) {
+    bool DangerZone = true;
+  }
+  
+  // If we are in danger and haven't begun Safety protocol, begin
+  if (DangerZone && !(SafetyEnabled)) {
+    bool SafetyEnabled = true;
+
     // Open file for logging
     file = SD.open("errorlog.txt", FILE_WRITE);
 
@@ -93,23 +103,31 @@ void loop() {
     // Log time and values of error
     file.println("Time: " + String(millis()/1000)+"s");
     file.println("Temperature: " + String(t) + "C Humidity: " + String(h)+"%");
+  }
 
-    //If temp/humidity in danger zones, flash LED every second, checking ranges every 9 seconds
-    for (int i = 0; i < 6; i++) {
+  // If we are in danger and Safety protocol already started, blink LED until out of danger
+  if (DangerZone && SafetyEnabled) {
+    // Flash LED every second, checking for danger every 11 seconds
+    for (int i = 0; i < 5; i++) {
       digitalWrite(LED_BUILTIN, HIGH);
       delay(1000);
       digitalWrite(LED_BUILTIN, LOW);
       delay(1000);
     }
   }
-  else {
-    // If safe, check every 10 seconds
-    delay(10000);
+  
+  // If temperature/humidity within acceptable ranges
+  if (!(DangerZone)) {
+    // Once back in safety, protocol no longer being enacted
+    SafetyEnabled = false;
+
+    // Check danger every 21 seconds
+    delay(20000);
   }
 
   // File won't reopen for writing unless closed
   file.close();
 
-  // Time before opening file again after closing
+  // Giving time before opening file again after closing
   delay(1000);
 }
