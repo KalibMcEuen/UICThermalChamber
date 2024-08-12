@@ -66,7 +66,7 @@ void loop() {
   }
 
   // Set variables for entering safety protocol
-  static bool SafetyProtocolEnabled = false;
+  static bool SafetyEnabled = false;
   static bool DangerZone = false;
 
   // Open or create file for writing
@@ -78,12 +78,15 @@ void loop() {
 
   // If temperature OR humidity unacceptable, we are in danger
   if (t < 17.5 || t > 23.5 || h > 50.0) {
-    bool DangerZone = true;
+    DangerZone = true;
+  }
+  else {
+    DangerZone = false;
   }
   
   // If we are in danger and haven't begun Safety protocol, begin
   if (DangerZone && !(SafetyEnabled)) {
-    bool SafetyEnabled = true;
+    SafetyEnabled = true;
 
     // Open file for logging
     file = SD.open("errorlog.txt", FILE_WRITE);
@@ -108,12 +111,15 @@ void loop() {
   // If we are in danger and Safety protocol already started, blink LED until out of danger
   if (DangerZone && SafetyEnabled) {
     // Flash LED every second, checking for danger every 11 seconds
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 1; i++) {
       digitalWrite(LED_BUILTIN, HIGH);
-      delay(1000);
+      delay(500);
       digitalWrite(LED_BUILTIN, LOW);
-      delay(1000);
+      delay(500);
     }
+    Serial.println("--------------------------------------------------------------------------------------------------------------------------------\n");
+    Serial.println("!!!!!!!!!!!\tTime since initialization: "+String(millis()/1000)+"s\t\tStatus: DANGER\t\tTemperature: "+String(t)+"\tHumidity: "+String(h)+"\t!!!!!!!!");
+    Serial.println("\n--------------------------------------------------------------------------------------------------------------------------------");
   }
   
   // If temperature/humidity within acceptable ranges
@@ -122,12 +128,15 @@ void loop() {
     SafetyEnabled = false;
 
     // Check danger every 21 seconds
-    delay(20000);
+    Serial.println("--------------------------------------------------------------------------------------------------------------------------------\n");
+    Serial.println("Time since initialization: "+String(millis()/1000)+"s\t\tStatus: Nominal\t\tTemperature: "+String(t)+"\tHumidity: "+String(h));
+    Serial.println("\n--------------------------------------------------------------------------------------------------------------------------------");
+    delay(5000);
   }
 
   // File won't reopen for writing unless closed
   file.close();
 
   // Giving time before opening file again after closing
-  delay(1000);
+  delay(500);
 }
