@@ -77,7 +77,7 @@ void loop() {
   float h = dht22.getHumidity();
 
   // If temperature OR humidity unacceptable, we are in danger
-  if (t < 17.5 || t > 23.5 || h > 50.0) {
+  if (t < -45 || t > 45 || h > 50.0) {
     DangerZone = true;
   }
   else {
