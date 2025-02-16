@@ -77,7 +77,7 @@ void loop() {
   float h = dht22.getHumidity();
 
   // If temperature OR humidity unacceptable, we are in danger
-  if (t < -45 || t > 45 || h > 50.0) {
+  if (t < -40 || t > 45 || h > 60.0) {
     DangerZone = true;
   }
   else {
@@ -140,3 +140,4 @@ void loop() {
   // Giving time before opening file again after closing
   delay(500);
 }
+
